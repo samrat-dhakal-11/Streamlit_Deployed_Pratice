@@ -1,93 +1,60 @@
 import streamlit as st
-import numpy as np
-import datetime
+import requests
 
-# Set up the page configuration for mobile-friendly view
-st.set_page_config(page_title="VibeTemp - Weather Dashboard", page_icon="🌡️", layout="centered")
+st.set_page_config(page_title="Free AI Chatbot", page_icon="💬", layout="centered")
+st.title("The Great Samrat Dhakal \n\n\n\n")
+st.title("💬 Free Open-Source AI Chatbot")
+st.write("A fully functional chatbot running on a free open-source model without API keys.")
 
-st.title("Samrat Dhakalllllllllllllll😚🤨😶😶😶🙂☺️😙🤔🤗😣😘😍🤗😔🤤😒😕🤑😔😔🙃😔😔🤧😇🤢🤫🤮🤫🤧😇😷😷🤢🤬🤧😇🤓👨‍🎤👨‍💼👨‍💼👨‍💼👨‍🎨👨‍🚒👩‍🎨👨‍💻👩‍🏭👨‍💼👨‍🎤👨‍🚀👨‍🚒🧛‍♂️🧙‍♂️🧛‍♂️🙆‍♀️🙋‍♀️🙋‍♀️🙆‍♀️🙇‍♂️🏌️‍♀️🏌️‍♀️🏂️⛷️🏄‍♂️🏄‍♀️🏄‍♂️👨‍👩‍👦‍👦👨‍👩‍👦‍👦👨‍👨‍👧‍👧👩‍👩‍👧👨‍👩‍👦‍👦")
-st.write("A sleek, responsive app to track local environmental temperatures.")
-
-# 1. State Management (Keeps data safe across reruns)
-if "current_temp_c" not in st.session_state:
-    st.session_state.current_temp_c = 22.5
-
-if "temp_history" not in st.session_state:
-    # Pre-populate with some initial mock historical data
-    base_time = datetime.datetime.now()
-    st.session_state.temp_history = [
-        {
-            "Time": (base_time - datetime.timedelta(seconds=i*5)).strftime("%H:%M:%S"), 
-            "Temperature (°C)": 22.5 + np.random.uniform(-0.5, 0.5)
-        }
-        for i in range(10, 0, -1)
+# 1. Initialize Chat History in Session State
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {"role": "assistant", "content": "Hello! I am a free AI model hosted on Hugging Face. How can I help you today?"}
     ]
 
-# 2. Sidebar Controls
-st.sidebar.header("Settings")
-unit = st.sidebar.radio("Select Temperature Unit:", ["Celsius (°C)", "Fahrenheit (°F)"])
+# 2. Display Chat History from Session State
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.write(message["content"])
 
-# Helper function to handle unit conversion dynamically
-def format_temp(temp_c):
-    if "Fahrenheit" in unit:
-        return (temp_c * 9/5) + 32, "°F"
-    return temp_c, "°C"
-
-# 3. Main Dashboard Fragment (Auto-refreshes seamlessly every 5 seconds)
-@st.fragment(run_every=5)
-def simulation_loop():
-    # Simulate slight temperature fluctuation
-    fluctuation = np.random.uniform(-0.5, 0.5)
-    st.session_state.current_temp_c = round(st.session_state.current_temp_c + fluctuation, 1)
+# 3. Handle User Input
+if user_prompt := st.chat_input("Type your message here..."):
     
-    # Append to history queue
-    current_time = datetime.datetime.now().strftime("%H:%M:%S")
-    st.session_state.temp_history.append({
-        "Time": current_time, 
-        "Temperature (°C)": st.session_state.current_temp_c
-    })
+    # Display user message instantly
+    with st.chat_message("user"):
+        st.write(user_prompt)
     
-    # Keep history length manageable (Max 15 points to save mobile memory)
-    if len(st.session_state.temp_history) > 15:
-        st.session_state.temp_history.pop(0)
-
-    # Format current values for display
-    display_val, symbol = format_temp(st.session_state.current_temp_c)
+    # Add user message to session state history
+    st.session_state.messages.append({"role": "user", "content": user_prompt})
     
-    # Display Layout Columns
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric(
-            label="Current Temperature", 
-            value=f"{display_val}{symbol}", 
-            delta=f"{round(fluctuation, 2)} {symbol}"
-        )
-    with col2:
-        st.metric(
-            label="Status", 
-            value="Optimal" if 18 <= st.session_state.current_temp_c <= 26 else "Alert"
-        )
+    # Display assistant placeholder with a spinner while fetching response
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking..."):
+            
+            try:
+                # Using a public, free-tier serverless endpoint for Microsoft's Phi-3 model
+                API_URL = "https://api-inference.huggingface.co/models/microsoft/Phi-3-mini-4k-instruct"
+                
+                # Format the prompt context for the model
+                payload = {"inputs": f"<|user|>\n{user_prompt}<|end|>\n<|assistant|>"}
+                
+                # Send request to Hugging Face
+                response = requests.post(API_URL, json=payload, timeout=10)
+                output = response.json()
+                
+                # Extract response text safely
+                if isinstance(output, list) and len(output) > 0 and "generated_text" in output[0]:
+                    raw_text = output[0]["generated_text"]
+                    # Clean up the output to only show the assistant's final response
+                    ai_response = raw_text.split("<|assistant|>")[-1].strip()
+                else:
+                    ai_response = "The free serverless API is currently busy or waking up. Please try again in a few seconds!"
+                    
+            except Exception as e:
+                ai_response = f"Connection Error: Could not reach the free AI server right now."
 
-    st.subheader("Temperature Trend Over Time")
-    
-    # Build clean chart data based on your updated logic
-    chart_data = []
-    for entry in st.session_state.temp_history:
-        val, _ = format_temp(entry["Temperature (°C)"])
-        chart_data.append({"Time": entry["Time"], "Temperature": val})
-        
-    # Render line chart explicitly tracking Temperature over Time
-    st.line_chart(data=chart_data, x="Time", y="Temperature", use_container_width=True)
-    st.caption("🔄 This section auto-updates every 5 seconds using Streamlit fragments.")
-
-# Run the live auto-updating block
-simulation_loop()
-
-# 4. Interactive Manual Reset (Sits outside the auto-refresh loop)
-st.divider()
-if st.button("Reset Dashboard Data", use_container_width=True):
-    st.session_state.current_temp_c = 22.5
-    # Clear history and re-initialize next rerun
-    if "temp_history" in st.session_state:
-        del st.session_state.temp_history
-    st.rerun()
+            # Display the final AI response
+            st.write(ai_response)
+            
+    # Add assistant response to session state history
+    st.session_state.messages.append({"role": "assistant", "content": ai_response})
