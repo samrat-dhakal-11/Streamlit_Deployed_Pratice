@@ -9,7 +9,7 @@ st.title("🤖 Gemini AI Chatbot")
 # We use st.secrets for security. See "How to deploy" below.
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-2.5-flash')
 except Exception as e:
     st.error("Error: Could not configure Gemini API. Check your Streamlit Secrets.")
     st.stop()
