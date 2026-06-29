@@ -1,40 +1,45 @@
 import streamlit as st
-import requests
+import google.generativeai as genai
 
-st.set_page_config(page_title="Free AI Chatbot", page_icon="💬", layout="centered")
-st.title("The Great Samrat Dhakal \n\n\n\n")
-st.title("💬 Free Open-Source AI Chatbot")
-st.write("A fully functional chatbot running on a free open-source model without API keys.")
+# 1. Page Configuration
+st.set_page_config(page_title="Gemini Chatbot", page_icon="🤖")
+st.title("🤖 Gemini AI Chatbot")
 
-# 1. Initialize Chat History in Session State
+# 2. Configure API Key
+# We use st.secrets for security. See "How to deploy" below.
+try:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    model = genai.GenerativeModel('gemini-1.5-flash')
+except Exception as e:
+    st.error("Error: Could not configure Gemini API. Check your Streamlit Secrets.")
+    st.stop()
+
+# 3. Initialize Chat History
 if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant", "content": "Hello! I am a free AI model hosted on Hugging Face. How can I help you today?"}
-    ]
+    st.session_state.messages = []
 
-# 2. Display Chat History from Session State
+# 4. Display History
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
-        st.write(message["content"])
+        st.markdown(message["content"])
 
-# 3. Handle User Input
-if user_prompt := st.chat_input("Type your message here..."):
-    
-    # Display user message instantly
-    with st.chat_message("user"):
-        st.write(user_prompt)
-    
-    # Add user message to session state history
-    st.session_state.messages.append({"role": "user", "content": user_prompt})
-    
-    # Display assistant placeholder with a spinner while fetching response
+# 5. Handle Chat Input
+if prompt := st.chat_input("Ask me anything..."):
+    # Display and Save User Message
+    st.chat_message("user").markdown(prompt)
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    # Generate AI Response
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            
             try:
-                # Using a public, free-tier serverless endpoint for Microsoft's Phi-3 model
-                API_URL = "https://api-inference.huggingface.co/models/microsoft/Phi-3-mini-4k-instruct"
-                
+                # Use model.start_chat if you want to keep context
+                chat = model.start_chat(history=[])
+                response = model.generate_content(prompt)
+                st.markdown(response.text)
+                st.session_state.messages.append({"role": "assistant", "content": response.text})
+            except Exception as e:
+                st.error(f"An error occurred: {e}")                
                 # Format the prompt context for the model
                 payload = {"inputs": f"<|user|>\n{user_prompt}<|end|>\n<|assistant|>"}
                 
