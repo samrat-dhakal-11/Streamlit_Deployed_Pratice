@@ -5,7 +5,6 @@ from tenacity import retry, wait_random_exponential, stop_after_attempt
 # 1. Page Configuration (Mandatory as per your requirement)
 st.set_page_config(page_title="Samrat Chatbot", page_icon="👑")
 st.title("The Great Samrat Dhakal")
-st.title("Rijan Dalla....")
 st.subheader("Enjoy Boys And Girls : Have Fun With AI")
 
 
