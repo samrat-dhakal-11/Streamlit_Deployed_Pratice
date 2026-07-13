@@ -1,2 +1,2 @@
-# Chatbot
-Its about chatbot.I just made this app in course of practicing generative artificial intelligence 
+# Project
+Its about project  when i am praticing on mobile  for deploying in streamlit
